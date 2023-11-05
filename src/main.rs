@@ -45,8 +45,8 @@ async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
 async fn main(spawner: Spawner) {
     let peripherals = embassy_rp::init(Default::default());
 
-    let firmware = include_bytes!("../assets/cyw43-firmware/43439A0.bin");
-    let clm = include_bytes!("../assets/cyw43-firmware/43439A0_clm.bin");
+    let firmware = include_bytes!("../assets/43439A0.bin");
+    let clm = include_bytes!("../assets/43439A0_clm.bin");
 
     let pwr = Output::new(peripherals.PIN_23, Level::Low);
     let cs = Output::new(peripherals.PIN_25, Level::High);
