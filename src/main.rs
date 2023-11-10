@@ -5,7 +5,6 @@
 #![allow(stable_features, unknown_lints, async_fn_in_trait)]
 
 use core::str::from_utf8;
-
 use cyw43_pio::PioSpi;
 use defmt::*;
 use embassy_executor::Spawner;
@@ -31,7 +30,11 @@ const HTTP_HEADER: &[u8] = b"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n"
 
 #[embassy_executor::task]
 async fn wifi_task(
-    runner: cyw43::Runner<'static, Output<'static, PIN_23>, PioSpi<'static, PIN_25, PIO0, 0, DMA_CH0>>,
+    runner: cyw43::Runner<
+        'static,
+        Output<'static, PIN_23>,
+        PioSpi<'static, PIN_25, PIO0, 0, DMA_CH0>,
+    >,
 ) -> ! {
     runner.run().await
 }
@@ -79,14 +82,14 @@ async fn main(spawner: Spawner) {
 
     let seed = 0x0123_4567_89ab_cdef;
 
-    let stack = &*make_static!(Stack::new(
+    let network_stack = &*make_static!(Stack::new(
         net_device,
         config,
         make_static!(StackResources::<2>::new()),
         seed
     ));
 
-    unwrap!(spawner.spawn(net_task(stack)));
+    unwrap!(spawner.spawn(net_task(network_stack)));
 
     loop {
         match control.join_wpa2(WIFI_NETWORK, WIFI_PASSWORD).await {
@@ -100,7 +103,7 @@ async fn main(spawner: Spawner) {
     control.gpio_set(0, true).await;
 
     info!("waiting for DHCP...");
-    while !stack.is_config_up() {
+    while !network_stack.is_config_up() {
         Timer::after_millis(100).await;
     }
     info!("DHCP is now up!");
@@ -112,7 +115,7 @@ async fn main(spawner: Spawner) {
     let mut buffer = [0; 4096];
 
     loop {
-        let mut socket = TcpSocket::new(stack, &mut rx_buffer, &mut tx_buffer);
+        let mut socket = TcpSocket::new(network_stack, &mut rx_buffer, &mut tx_buffer);
         socket.set_timeout(Some(Duration::from_secs(10)));
 
         if let Err(e) = socket.accept(80).await {
