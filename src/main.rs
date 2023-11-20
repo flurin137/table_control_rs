@@ -12,15 +12,18 @@ use embassy_net::tcp::TcpSocket;
 use embassy_net::{Config, Stack, StackResources};
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_25, PIO0};
-use embassy_rp::pio::{InterruptHandler, Pio};
+use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_25, PIO0, USB};
+use embassy_rp::pio::Pio;
+use embassy_rp::usb::Driver;
 use embassy_time::{Duration, Timer};
 use embedded_io_async::Write;
 use static_cell::make_static;
 use {defmt_rtt as _, panic_probe as _};
+use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
-    PIO0_IRQ_0 => InterruptHandler<PIO0>;
+    PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<PIO0>;
+    USBCTRL_IRQ => embassy_rp::usb::InterruptHandler<USB>;
 });
 
 const WIFI_NETWORK: &str = "";
@@ -42,6 +45,11 @@ async fn wifi_task(
 #[embassy_executor::task]
 async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
     stack.run().await
+}
+
+#[embassy_executor::task]
+async fn logger_task(driver: Driver<'static, USB>) {
+    embassy_usb_logger::run!(1024, log::LevelFilter::Debug, driver);
 }
 
 #[embassy_executor::main]
@@ -67,6 +75,9 @@ async fn main(spawner: Spawner) {
     let state = make_static!(cyw43::State::new());
     let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, firmware).await;
     unwrap!(spawner.spawn(wifi_task(runner)));
+
+    let driver = Driver::new(peripherals.USB, Irqs);
+    unwrap!(spawner.spawn(logger_task(driver)));
 
     control.init(clm).await;
     control
@@ -95,18 +106,21 @@ async fn main(spawner: Spawner) {
         match control.join_wpa2(WIFI_NETWORK, WIFI_PASSWORD).await {
             Ok(_) => break,
             Err(err) => {
-                info!("join failed with status={}", err.status);
+                log::info!("join failed with status={}", err.status);
             }
         }
     }
 
     control.gpio_set(0, true).await;
 
-    info!("waiting for DHCP...");
+    log::info!("waiting for DHCP...");
     while !network_stack.is_config_up() {
         Timer::after_millis(100).await;
     }
-    info!("DHCP is now up!");
+    log::info!("DHCP is now up!");
+    if let Some(config) = network_stack.config_v4() {
+        log::info!("{}", config.address);
+    }
 
     control.gpio_set(0, false).await;
 
@@ -119,21 +133,21 @@ async fn main(spawner: Spawner) {
         socket.set_timeout(Some(Duration::from_secs(10)));
 
         if let Err(e) = socket.accept(80).await {
-            warn!("accept error: {:?}", e);
+            log::warn!("accept error: {:?}", e);
             continue;
         }
 
-        info!("Received connection from {:?}", socket.remote_endpoint());
+        log::info!("Received connection from {:?}", socket.remote_endpoint());
 
         loop {
             let read_size = match socket.read(&mut buffer).await {
                 Ok(0) => {
-                    warn!("read EOF");
+                    log::warn!("read EOF");
                     break;
                 }
                 Ok(read_size) => read_size,
                 Err(error) => {
-                    warn!("read error: {:?}", error);
+                    log::warn!("read error: {:?}", error);
                     break;
                 }
             };
@@ -151,15 +165,15 @@ async fn main(spawner: Spawner) {
                 table_up.set_low();
             }
 
-            info!("rxd {}", read_data);
+            log::info!("rxd {}", read_data);
 
             if let Err(e) = socket.write_all(HTTP_HEADER).await {
-                warn!("write error: {:?}", e);
+                log::warn!("write error: {:?}", e);
                 break;
             };
 
             if let Err(e) = socket.write_all(html).await {
-                warn!("write error: {:?}", e);
+                log::warn!("write error: {:?}", e);
                 break;
             };
 
