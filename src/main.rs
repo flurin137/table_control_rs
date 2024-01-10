@@ -23,8 +23,8 @@ bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => InterruptHandler<PIO0>;
 });
 
-const WIFI_NETWORK: &str = "";
-const WIFI_PASSWORD: &str = "";
+const WIFI_NETWORK: &str = "Fx137";
+const WIFI_PASSWORD: &str = "asdf1234";
 
 const HTTP_HEADER: &[u8] = b"HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n";
 
