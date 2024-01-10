@@ -1,8 +1,13 @@
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
-runner = "elf2uf2-rs -d"
+runner = "probe-rs run --chip RP2040"
+#runner = "elf2uf2-rs -d"
 
 [build]
 target = "thumbv6m-none-eabi"
 
 [env]
 DEFMT_LOG = "debug"
+
+[profile.release]
+# Allows defmt to display log locations even in release
+debug = true
