@@ -389,19 +389,20 @@ dependencies = [
 
 [[package]]
 name = "embassy-executor"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "cortex-m",
  "critical-section",
  "defmt",
  "document-features",
  "embassy-executor-macros",
- "embassy-time",
+ "embassy-time-driver",
+ "embassy-time-queue-driver",
 ]
 
 [[package]]
 name = "embassy-executor-macros"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -425,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "embassy-net"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "as-slice 0.2.1",
  "atomic-pool",
@@ -476,6 +477,7 @@ dependencies = [
  "embassy-hal-internal",
  "embassy-sync",
  "embassy-time",
+ "embassy-time-driver",
  "embassy-usb-driver",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
@@ -508,18 +510,31 @@ dependencies = [
 
 [[package]]
 name = "embassy-time"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cfg-if",
  "critical-section",
  "defmt",
  "document-features",
+ "embassy-time-driver",
+ "embassy-time-queue-driver",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "futures-util",
  "heapless 0.8.0",
 ]
+
+[[package]]
+name = "embassy-time-driver"
+version = "0.1.0"
+dependencies = [
+ "document-features",
+]
+
+[[package]]
+name = "embassy-time-queue-driver"
+version = "0.1.0"
 
 [[package]]
 name = "embassy-usb-driver"
