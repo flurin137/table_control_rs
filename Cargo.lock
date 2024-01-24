@@ -231,6 +231,7 @@ dependencies = [
  "embassy-time",
  "embedded-hal 1.0.0",
  "futures",
+ "heapless 0.8.0",
  "num_enum",
 ]
 
